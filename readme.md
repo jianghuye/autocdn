@@ -8,10 +8,12 @@
 ## 功能
 
 - 自动检测并切换到延迟更低的 CDN 节点。
-- 响应速度显著高于 DNS 切换，简易度由于修改hosts
+- 响应速度显著高于 DNS 切换，使用简单
 - 配置简单，自动路由，无需用户手动修改 `hosts`，以及IP指向
 
 ---
+
+<br>
 
 ## 简介
 
@@ -31,6 +33,8 @@
 
 ---
 
+<br>
+
 ## 📦 安装与运行
 
 ### 运行命令
@@ -46,16 +50,18 @@
 
 ---
 
+<br>
+
 ## 🚀 使用方法
 
 1. 准备一个包含候选 CDN IP 的 `ips.txt` 文件
 ips.txt为以下格式：
 ```text
-192.168.x.x
-192.168.x.x:443
-192.168.x.x:8443
-cdn.mydomain.com
-cdn.mydomain.com:6443
+192.1.x.x
+192.2.x.x:443
+192.3.x.x:8443
+cdn.mydomain1.com
+cdn.mydomain2.com:6443
 ```
 可以填入cdnIP，以及指向cdn的域名以及端口
 
@@ -78,6 +84,8 @@ cdn.mydomain.com:6443
    - CDN 网站将自动切换至延迟最低的节点  
    - 非 CDN 网站将直连，不经过代理
 
+<br>
+
 ### raw TCP端口
 
 如果你需要 raw TCP端口（类似cfnat），而不是HTTP Proxy端口。可以使用gost进行反代。
@@ -88,4 +96,5 @@ cdn.mydomain.com:6443
 ```bash
 ./gost -L=sni://127.0.0.1:443 -F http://127.0.0.1:8081
 ```
+
 
