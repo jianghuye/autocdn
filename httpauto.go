@@ -25,6 +25,7 @@ var autoC byte
 var Inits byte
 var cache sync.Map
 var debugOn bool
+var forceCdn sync.Map
 
 func main() {
     argc:=len(os.Args)
@@ -72,6 +73,18 @@ func main() {
     testip=nil
     rand.Seed(time.Now().UnixNano())
     go auto排序();
+    rd, err = os.ReadFile("forcecdn.txt")
+    if err == nil {
+    log.Println("INFO: enable force cdn")
+    lines := strings.Split(string(rd), "\n")
+    for _, line := range lines {
+        if line != "" {
+        rt := strings.ReplaceAll(line, "\r", "")
+        forceCdn.Store(rt,true)
+        log.Println("INFO: load force domain:", rt)
+        }
+    }
+    }
     log.Println("INFO: server listening on:",ipaddr)
     if err := server.ListenAndServe(); err != nil {
         log.Fatal(err)
@@ -90,8 +103,13 @@ func handleConnect(w http.ResponseWriter, r *http.Request) {
         }
         return
     }
+    domain, _, err := net.SplitHostPort(r.Host)
+    if err != nil {
+        domain = r.Host
+    }
+    _,ok=forceCdn.Load(domain)
     var rconn net.Conn
-    if nslookcdn(r.Host) {
+    if nslookcdn(r.Host) || ok {
         if debugOn {
         log.Println("Debug: find IP:",r.Host)
         }
@@ -184,12 +202,14 @@ func autoGetip() (int,string) {
 
 func auto排序(){
 for{
-    time.Sleep(time.Second * 600)
+    time.Sleep(time.Second * 60)
+    if Inits > 240 {
     delockd.Lock()
     sort.Slice(iptest, func(i, j int) bool {
     return iptest[i].Timems < iptest[j].Timems
     })
     delockd.Unlock()
+    }
 }}
 
 func nslookcdn(addr string) bool {
@@ -215,14 +235,30 @@ func nslookcdn(addr string) bool {
         }
         return false
     }
+    onCdn:=false
+    for _, ns := range nsRecords {
+        if strings.HasSuffix(ns.Host, ".cloudflare.com.") {
+            onCdn=true
+        }
+    }
+    if onCdn {
+    nsRecords, err = net.LookupNS(domain)
+    if err != nil {
+        cache.Store(domain,true)
+		time.AfterFunc(time.Second*600,func(){
+		cache.Delete(domain)
+			})
+		return true
+    }
     for _, ns := range nsRecords {
         if strings.HasSuffix(ns.Host, ".cloudflare.com.") {
             cache.Store(domain,true)
-			time.AfterFunc(time.Second*60*60*24,func(){
-			cache.Delete(domain)
-			})
+            time.AfterFunc(time.Second*600,func(){
+            cache.Delete(domain)
+            })
             return true
         }
+    }
     }
     return false
 }
